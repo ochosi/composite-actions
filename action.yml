@@ -1,0 +1,53 @@
+name: "Upstream release"
+description: "Perform an upstream GitHub release"
+
+inputs:
+  repository_name:
+    description: "Name of the GitHub repository"
+    required: true
+  token:
+    description: "A GitHub token for creating a release"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout current repo
+      uses: actions/checkout@v2
+      with:
+          token: "${{ inputs.TOKEN }}"
+          fetch-depth: 0
+
+    - name: Fetch all tags
+      run: |
+        git fetch --tags --prune --force
+        git tag --list
+
+    - name: Generate release information
+      run: |
+        export TAG=$(git describe "${GITHUB_REF}")
+        git tag --list --format="%(subject)%0a%(body)" $TAG > release.md
+        echo "release_version=${TAG//v}" >> $GITHUB_ENV
+
+    - name: Create GitHub release
+      # https://github.com/marketplace/actions/create-release
+      uses: ncipollo/release-action@v1.8.10
+      with:
+        name: "${{  env.release_version }}"
+        token: "${{ inputs.TOKEN }}"
+        bodyFile: "release.md"
+
+    - name: Bump version
+      run: |
+        sed -i -E "s/(Version:\\s+)[0-9].+/\1${{  env.release_version }}/" osbuild*.spec
+        if [ -f "setup.py" ]; then
+          sed -i -E "s/(version=\")[0-9]+/\1${{  env.release_version }}/" setup.py
+        fi
+
+    - name: Commit new version
+      # https://github.com/marketplace/actions/add-commit
+      uses: EndBug/add-and-commit@v7
+      with:
+        branch: main
+        message: "Post release version bump"
+        add: "-u *"
