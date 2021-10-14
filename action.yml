@@ -22,12 +22,14 @@ runs:
       run: |
         git fetch --tags --prune --force
         git tag --list
+      shell: bash
 
     - name: Generate release information
       run: |
         export TAG=$(git describe "${GITHUB_REF}")
         git tag --list --format="%(subject)%0a%(body)" $TAG > release.md
         echo "release_version=${TAG//v}" >> $GITHUB_ENV
+      shell: bash
 
     - name: Create GitHub release
       # https://github.com/marketplace/actions/create-release
@@ -43,6 +45,7 @@ runs:
         if [ -f "setup.py" ]; then
           sed -i -E "s/(version=\")[0-9]+/\1${{  env.release_version }}/" setup.py
         fi
+      shell: bash
 
     - name: Commit new version
       # https://github.com/marketplace/actions/add-commit
