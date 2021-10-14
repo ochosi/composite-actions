@@ -40,7 +40,7 @@ runs:
         bodyFile: "release.md"
 
     - name: Bump version
-      run: ${{ github.action_path }}/bump-version.sh ${{  env.release_version }}"
+      run: ${{ github.action_path }}/bump-version.sh "${{  env.release_version }}"
       shell: bash
 
     - name: Commit new version
