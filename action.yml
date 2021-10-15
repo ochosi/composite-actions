@@ -2,9 +2,6 @@ name: "Upstream release"
 description: "Perform an upstream GitHub release"
 
 inputs:
-  repository_name:
-    description: "Name of the GitHub repository"
-    required: true
   token:
     description: "A GitHub token for creating a release"
     required: true
