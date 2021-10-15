@@ -25,10 +25,7 @@ runs:
       shell: bash
 
     - name: Generate release information
-      run: |
-        export TAG=$(git describe "${GITHUB_REF}")
-        git tag --list --format="%(subject)%0a%(body)" $TAG > release.md
-        echo "release_version=${TAG//v}" >> $GITHUB_ENV
+      run: ${{ github.action_path }}/release-info.sh
       shell: bash
 
     - name: Create GitHub release
