@@ -5,6 +5,9 @@ inputs:
   token:
     description: "A GitHub token for creating a release"
     required: true
+  slack_webhook_url:
+    description: "A Slack incoming Webhook URL"
+    required: true
 
 runs:
   using: "composite"
@@ -50,5 +53,5 @@ runs:
       with:
         payload: "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"🚀 ${{  env.component }} ${{  env.release_version }} released!\"}}]}"
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_URL: ${{ inputs.SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
