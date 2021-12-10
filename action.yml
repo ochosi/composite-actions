@@ -51,7 +51,7 @@ runs:
       id: slack
       uses: slackapi/slack-github-action@v1.16.0
       with:
-        payload: "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"🚀 *[https://github.com/osbuild/${{  env.component }}/releases/tag/v${{  env.release_version }}](${{  env.component }} ${{  env.release_version }}) released!* 🚀\"}}]}"
+        payload: "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"🚀 *<https://github.com/osbuild/${{  env.component }}/releases/tag/v${{  env.release_version }}|${{  env.component }} ${{  env.release_version }}> just got released!* 🚀\"}}]}"
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
