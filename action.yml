@@ -1,12 +1,9 @@
-name: "Upstream release"
-description: "Perform an upstream GitHub release"
+name: "Create and push tag"
+description: "Create a tag and push it"
 
 inputs:
   token:
-    description: "A GitHub token for creating a release"
-    required: true
-  slack_webhook_url:
-    description: "A Slack incoming Webhook URL"
+    description: "A GitHub token for creating a tag"
     required: true
 
 runs:
@@ -23,35 +20,22 @@ runs:
       run: git fetch --tags --prune --force
       shell: bash
 
-    - name: Generate release information
-      run: ${{ github.action_path }}/release-info.sh
+    - name: Set up git
+      run:  |
+        git config --global user.email "imagebuilder-bots+imagebuilder-bot@redhat.com"
+        git config --global user.name "imagebuilder-bot"
       shell: bash
 
-    - name: Create GitHub release
-      # https://github.com/marketplace/actions/create-release
-      uses: ncipollo/release-action@v1.8.10
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
       with:
-        name: "${{  env.release_version }}"
-        token: "${{ inputs.TOKEN }}"
-        bodyFile: "release.md"
+        python-version: 3.9
 
-    - name: Bump version
-      run: ${{ github.action_path }}/bump-version.sh "${{  env.release_version }}"
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ghapi
+
+    - name: Create tag
+      run: ${{ github.action_path }}/release.py --token "${{ inputs.TOKEN }}" --no-interactive
       shell: bash
-
-    - name: Commit new version
-      # https://github.com/marketplace/actions/add-commit
-      uses: EndBug/add-and-commit@v7
-      with:
-        branch: main
-        message: "Post release version bump"
-        add: "-u *"
-
-    - name: Send custom JSON data to Slack workflow
-      id: slack
-      uses: slackapi/slack-github-action@v1.16.0
-      with:
-        payload: "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"🚀 *<https://github.com/osbuild/${{  env.component }}/releases/tag/v${{  env.release_version }}|${{  env.component }} ${{  env.release_version }}> just got released!* 🚀\"}}]}"
-      env:
-        SLACK_WEBHOOK_URL: ${{ inputs.SLACK_WEBHOOK_URL }}
-        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
