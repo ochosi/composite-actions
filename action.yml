@@ -15,15 +15,12 @@ runs:
           token: "${{ inputs.TOKEN }}"
           fetch-depth: 0
 
-    - name: Fetch all tags
-      # GitHub's checkout action doesn't properly fetch the current tag
-      run: git fetch --tags --prune --force
-      shell: bash
-
     - name: Set up git
       run:  |
         git config --global user.email "imagebuilder-bots+imagebuilder-bot@redhat.com"
         git config --global user.name "imagebuilder-bot"
+    # GitHub's checkout action doesn't properly fetch the current tag
+    #    git fetch --tags --prune --force
       shell: bash
 
     - name: Set up Python 3.9
