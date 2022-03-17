@@ -29,10 +29,10 @@ runs:
     #    git fetch --tags --prune --force
       shell: bash
 
-    - name: Create tag
     - uses: actions/setup-python@v2
       with: python-version: '3.9'
-    - run: |
+    - name: Create tag
+      run: |
         sudo apt-get install python3
         python -m pip install --upgrade pip
         pip install ghapi
