@@ -16,7 +16,7 @@ runs:
   using: "composite"
   steps:
     - name: Checkout current repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
           token: "${{ inputs.TOKEN }}"
           fetch-depth: 0
@@ -34,12 +34,9 @@ runs:
       with:
         python-version: 3.9
 
-    - name: Install Python dependencies
+    - name: Create tag
       run: |
         python -m pip install --upgrade pip
         pip install ghapi
-      shell: bash
-
-    - name: Create tag
-      run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive
+        ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive
       shell: bash
