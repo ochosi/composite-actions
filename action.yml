@@ -27,7 +27,7 @@ runs:
     - name: Install Python and depends
       run: |
         sudo apt install python3
-        pip install ghapi
+        pip install -r requirements.txt
       shell: bash
 
     - name: Set up git
