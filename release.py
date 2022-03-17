@@ -275,7 +275,7 @@ def main():
     parser.add_argument("-t", "--token", help=f"Set the GitHub token (token found: {bool(token)})",
                         default=token)
     parser.add_argument("-i", "--interactive", help="Create tag interactively, i.e. allow editing",
-                        default=True, action=argparse.BooleanOptionalAction)
+                        default=True, action='store_true')
     parser.add_argument(
         "-b", "--base",
         help=f"Set the base branch that the release targets (Default: {current_branch})",
