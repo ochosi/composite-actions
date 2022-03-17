@@ -41,46 +41,6 @@ def msg_ok(body):
     print(f"{fg.OK}{fg.BOLD}OK:{fg.RESET} {body}")
 
 
-def sanity_checks(repo):
-    """Check if we are in a git repo, on the right branch and up-to-date"""
-    if repo not in ['osbuild', 'osbuild-composer', 'cockpit-composer']:
-        msg_info("This script is only tested with 'cockpit-composer', 'osbuild', and 'osbuild-composer'.")
-
-    is_git = run_command(['git', 'rev-parse', '--is-inside-work-tree'])
-    if is_git != "true":
-        msg_error("This is not a git repository.")
-
-    current_branch = run_command(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
-    if "release" in current_branch:
-        msg_info(f"You are already on a release branch: {current_branch}")
-    elif "rhel-8" in current_branch:
-        msg_info(f"You are going for a point release against: {current_branch}")
-    elif current_branch != "main":
-        msg_error(f"You are not on the 'main' branch but on branch '{current_branch}'.")
-
-    is_clean = run_command(['git', 'status', '--untracked-files=no', '--porcelain'])
-    if is_clean != "":
-        status = run_command(['git', 'status', '--untracked-files=no', '-s'])
-        msg_info("The working directory is not clean.\n"
-                 "You have the following unstaged or uncommitted changes:\n"
-                 f"{status}")
-    has_gpg_key = run_command(['git', 'config', '--get', 'user.signingkey'])
-    if has_gpg_key == "":
-        msg_info("There is no GPG key set in your git configuration so you cannot create a signed tag.\n"
-                  "If you already have a GPG key you can get the fingerprint with:\n"
-                  "'gpg --list-secret-keys --keyid-format=long'\n"
-                  "Please then set it using 'git config --global user.signingkey FINGERPRINT'")
-
-    valid_origins = [f"https://github.com/osbuild/{repo}.git", f"git@github.com:osbuild/{repo}.git"]
-    origin_url = run_command(['git', 'remote', 'get-url', 'origin'])
-    if origin_url not in valid_origins:
-        msg_info("The 'origin' remote is not properly configured.\n"
-                  "Make sure to have a remote named 'origin' pointed to the upstream repository.\n"
-                  f"E.g. by running 'git remote add origin git@github.com:osbuild/{repo}.git'")
-
-    return current_branch
-
-
 def run_command(argv):
     """Run a shellcommand and return stdout"""
     result = subprocess.run(  # pylint: disable=subprocess-run-check
@@ -89,32 +49,6 @@ def run_command(argv):
         text=True,
         encoding='utf-8').stdout
     return result.strip()
-
-
-def step(action, args, verify):
-    """Ask the user whether to accept (y) or skip (s) the step or cancel (N) the playbook"""
-    ret = None
-    while ret is None:
-        if args.interactive is False:
-            ret = "ok"
-        else:
-            feedback = input(f"{fg.BOLD}Step: {fg.RESET}{action} ([y]es, [s]kip, [Q]uit) ").lower()
-            if feedback == "y":
-                if args is not None:
-                    out = run_command(args)
-                    if verify is not None:
-                        out = run_command(verify)
-
-                    msg_ok(f"\n{out}")
-                ret = "ok"
-            elif feedback == "s":
-                msg_info("Step skipped.")
-                ret = "skipped"
-            elif feedback in ("q", ""):
-                msg_info("Release playbook quit.")
-                sys.exit(0)
-
-    return ret
 
 
 def autoincrement_version(latest_tag):
@@ -127,24 +61,6 @@ def autoincrement_version(latest_tag):
     else:
         version = int(latest_tag.replace("v", "")) + 1
     return version
-
-
-def detect_github_token():
-    """Check if a GitHub token is available"""
-    token = os.getenv("GITHUB_TOKEN")
-    if token:
-        msg_info("Using token from '$GITHUB_TOKEN'")
-        return token
-
-    path = os.path.expanduser("~/.config/packit.yaml")
-    with contextlib.suppress(FileNotFoundError, ImportError):
-        with open(path, 'r', encoding='utf-8') as file:
-            data = yaml.safe_load(file)
-            token = data["authentication"]["github.com"]["token"]
-            msg_info("Using token from '~/.config/packit.yaml'")
-            return token
-
-    return None
 
 
 def list_prs_for_hash(args, api, repo, commit_hash):
@@ -167,8 +83,9 @@ def list_prs_for_hash(args, api, repo, commit_hash):
     return ret
 
 
-def get_pullrequest_infos(args, repo, api, hashes):
+def get_pullrequest_infos(args, repo, hashes):
     """Fetch the titles of all related pull requests"""
+    api = GhApi(repo=repo, owner='ochosi', token=args.token)
     summaries = []
     i = 0
 
@@ -201,7 +118,7 @@ def get_contributors(args):
     return names[:-2]
 
 
-def create_release_tag(args, repo, api):
+def create_release_tag(args, repo, tag):
     """Create a release tag"""
     today = date.today()
     contributors = get_contributors(args)
@@ -210,7 +127,7 @@ def create_release_tag(args, repo, api):
     hashes = run_command(['git', 'log', '--format=%H', f'{args.latest_tag}..HEAD']).split("\n")
     msg_info(f"Found {len(hashes)} commits since {args.latest_tag} in {args.base}:")
     print("\n".join(hashes))
-    summaries = get_pullrequest_infos(args, repo, api, hashes)
+    summaries = get_pullrequest_infos(args, repo, hashes)
 
     if repo == "cockpit-composer":
         tag = str(args.version)
@@ -224,10 +141,7 @@ def create_release_tag(args, repo, api):
                 f"Contributions from: {contributors}\n\n"
                 f"— Somewhere on the internet, {today.strftime('%Y-%m-%d')}")
 
-    if args.interactive:
-        subprocess.call(['git', 'tag', '-s', '-e', '-m', message, tag, 'HEAD'])
-    else:
-        subprocess.call(['git', 'tag', '-s', '-m', message, tag, 'HEAD'])
+    subprocess.call(['git', 'tag', '-s', '-m', message, tag, 'HEAD'])
 
 
 def print_config(args, repo):
@@ -240,67 +154,50 @@ def print_config(args, repo):
           f"{fg.BOLD}GitHub{fg.RESET}:\n"
           f"  User:          {args.user}\n"
           f"  Token:         {bool(args.token)}\n"
-          f"  Interactive:   {args.interactive}\n"
           f"--------------------------------\n")
-
-
-def step_create_release_tag(args, repo, api):
-    res = step("Create a tag for the release", args, None)
-    if res != "skipped":
-        create_release_tag(args, repo, api)
-    if repo == "cockpit-composer":
-        tag = str(args.version)
-    else:
-        tag = f'v{args.version}'
-
-    step("Push the release tag upstream", ['git', 'push', 'origin', tag], None)
 
 
 def main():
     """Main function"""
     # Get some basic fallback/default values
     repo = os.path.basename(os.getcwd())
-    current_branch = sanity_checks(repo)
     latest_tag = run_command(['git', 'describe', '--tags', '--abbrev=0'])
     version = autoincrement_version(latest_tag)
     username = getpass.getuser()
-    token = detect_github_token()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--version",
                         help=f"Set the version for the release (Default: {version})",
                         default=version)
+    parser.add_argument("-c", "--component",
+                        help=f"Set the component for the release (Default: {repo})",
+                        default=repo)
     parser.add_argument("-u", "--user", help=f"Set the username on GitHub (Default: {username})",
                         default=username)
-    parser.add_argument("-t", "--token", help=f"Set the GitHub token (token found: {bool(token)})",
-                        default=token)
-    parser.add_argument("-i", "--interactive", help="Create tag interactively, i.e. allow editing",
-                        default=True, action='store_true')
-    parser.add_argument("--no-interactive", help="Non interactive bot mode",
-                        default=False, action='store_true')
+    parser.add_argument("-t", "--token", help=f"Set the GitHub token")
     parser.add_argument(
         "-b", "--base",
-        help=f"Set the base branch that the release targets (Default: {current_branch})",
-        default=current_branch)
+        help=f"Set the base branch that the release targets (Default: 'main')",
+        default='main')
 
     args = parser.parse_args()
-
-    if args.no_interactive:
-        args.interactive = False
 
     args.latest_tag = latest_tag
 
     if args.token is None:
         msg_error("Please supply a valid GitHub token.")
 
-    msg_info(f"Updating branch '{args.base}' to avoid conflicts...\n{run_command(['git', 'pull'])}")
-
-    api = GhApi(repo=repo, owner='osbuild', token=args.token)
-
     print_config(args, repo)
 
     # Create a release tag
-    step_create_release_tag(args, repo, api)
+    if repo == "cockpit-composer":
+        tag = str(args.version)
+    else:
+        tag = f'v{args.version}'
+    create_release_tag(args, repo, tag)
+
+    subprocess.call(['git', 'push', 'origin', tag])
+    msg_ok(f"Pushed tag '{tag}' to branch '{args.base}'")
 
 
 if __name__ == "__main__":

@@ -25,6 +25,7 @@ runs:
       run:  |
         git config --global user.email "${{ inputs.EMAIL }}"
         git config --global user.name "${{ inputs.USERNAME }}"
+        git remote -v
     # GitHub's checkout action doesn't properly fetch the current tag
     #    git fetch --tags --prune --force
       shell: bash
