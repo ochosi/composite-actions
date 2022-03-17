@@ -5,6 +5,12 @@ inputs:
   token:
     description: "A GitHub token for creating a tag"
     required: true
+  username:
+    description: "A GitHub user name"
+    required: true
+  email:
+    description: "The GitHub user's email address"
+    required: true
 
 runs:
   using: "composite"
@@ -17,8 +23,8 @@ runs:
 
     - name: Set up git
       run:  |
-        git config --global user.email "imagebuilder-bots+imagebuilder-bot@redhat.com"
-        git config --global user.name "imagebuilder-bot"
+        git config --global user.email "${{ inputs.EMAIL }}"
+        git config --global user.name "${{ inputs.USERNAME }}"
     # GitHub's checkout action doesn't properly fetch the current tag
     #    git fetch --tags --prune --force
       shell: bash
@@ -35,5 +41,5 @@ runs:
       shell: bash
 
     - name: Create tag
-      run: ${{ github.action_path }}/release.py --token "${{ inputs.TOKEN }}" --no-interactive
+      run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive
       shell: bash
