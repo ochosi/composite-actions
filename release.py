@@ -70,7 +70,8 @@ def list_prs_for_hash(args, api, repo, commit_hash):
         res = api.search.issues_and_pull_requests(q=query, per_page=20)
     except:
         msg_info(f"Couldn't get PR infos for {commit_hash}.")
-        ret = None
+        res = None
+
     if res is not None:
         items = res["items"]
 
