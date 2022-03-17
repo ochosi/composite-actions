@@ -1,18 +1,13 @@
 #!/usr/bin/python3
 
-"""Step interactively through the release process for osbuild"""
-
-# Requires: pip install ghapi (https://ghapi.fast.ai/)
+"""Release bot"""
 
 import argparse
-import contextlib
 import subprocess
 import sys
 import os
-import getpass
 import time
 from datetime import date
-import yaml
 from ghapi.all import GhApi
 
 
@@ -47,8 +42,14 @@ def run_command(argv):
         argv,
         capture_output=True,
         text=True,
-        encoding='utf-8').stdout
-    return result.strip()
+        encoding='utf-8')
+
+    if result.returncode == 0:
+        ret = result.stdout.strip()
+    else:
+        ret = result.stderr.strip()
+
+    return ret
 
 
 def autoincrement_version(latest_tag):
@@ -111,9 +112,9 @@ def get_pullrequest_infos(args, repo, hashes):
     return "\n".join(summaries)
 
 
-def get_contributors(args):
+def get_contributors(latest_tag):
     """Collect all contributors to a release based on the git history"""
-    contributors = run_command(["git", "log", '--format="%an"', f"{args.latest_tag}..HEAD"])
+    contributors = run_command(["git", "log", '--format="%an"', f"{latest_tag}..HEAD"])
     contributor_list = contributors.replace('"', '').split("\n")
     names = ""
     for name in sorted(set(contributor_list)):
@@ -123,31 +124,26 @@ def get_contributors(args):
     return names[:-2]
 
 
-def create_release_tag(args, repo, tag):
+def create_release_tag(args, repo, tag, latest_tag):
     """Create a release tag"""
     today = date.today()
-    contributors = get_contributors(args)
+    contributors = get_contributors(latest_tag)
 
     summaries = ""
-    hashes = run_command(['git', 'log', '--format=%H', f'{args.latest_tag}..HEAD']).split("\n")
-    msg_info(f"Found {len(hashes)} commits since {args.latest_tag} in {args.base}:")
+    hashes = run_command(['git', 'log', '--format=%H', f'{latest_tag}..HEAD']).split("\n")
+    msg_info(f"Found {len(hashes)} commits since {latest_tag} in {args.base}:")
     print("\n".join(hashes))
     summaries = get_pullrequest_infos(args, repo, hashes)
 
-    if repo == "cockpit-composer":
-        tag = str(args.version)
-        message = (f"{args.version}:\n\n"
-               f"{summaries}\n")
-    else:
-        tag = f'v{args.version}'
-        message = (f"CHANGES WITH {args.version}:\n\n"
-                f"----------------\n"
-                f"{summaries}\n\n"
-                f"Contributions from: {contributors}\n\n"
-                f"— Somewhere on the internet, {today.strftime('%Y-%m-%d')}")
+    tag = f'v{args.version}'
+    message = (f"CHANGES WITH {args.version}:\n\n"
+            f"----------------\n"
+            f"{summaries}\n\n"
+            f"Contributions from: {contributors}\n\n"
+            f"— Somewhere on the internet, {today.strftime('%Y-%m-%d')}")
 
-    msg_info(f"Creating tag '{tag}' with message:\n{message}")
-    subprocess.call(['git', 'tag', '-s', '-m', message, tag, 'HEAD'])
+    subprocess.call(['git', 'tag', '-m', message, tag, 'HEAD'])
+    msg_ok(f"Created tag '{tag}' with message:\n{message}")
 
 
 def print_config(args, repo):
@@ -157,9 +153,6 @@ def print_config(args, repo):
           f"  Component:     {repo}\n"
           f"  Version:       {args.version}\n"
           f"  Base branch:   {args.base}\n"
-          f"{fg.BOLD}GitHub{fg.RESET}:\n"
-          f"  User:          {args.user}\n"
-          f"  Token:         {bool(args.token)}\n"
           f"--------------------------------\n")
 
 
@@ -169,39 +162,25 @@ def main():
     repo = os.path.basename(os.getcwd())
     latest_tag = run_command(['git', 'describe', '--tags', '--abbrev=0'])
     version = autoincrement_version(latest_tag)
-    username = getpass.getuser()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--version",
                         help=f"Set the version for the release (Default: {version})",
                         default=version)
-    parser.add_argument("-c", "--component",
-                        help=f"Set the component for the release (Default: {repo})",
-                        default=repo)
-    parser.add_argument("-u", "--user", help=f"Set the username on GitHub (Default: {username})",
-                        default=username)
     parser.add_argument("-t", "--token", help=f"Set the GitHub token")
-    parser.add_argument(
-        "-b", "--base",
-        help=f"Set the base branch that the release targets (Default: 'main')",
-        default='main')
-
+    parser.add_argument("-b", "--base",
+                        help=f"Set the release branch (Default: 'main')",
+                        default='main')
     args = parser.parse_args()
-
-    args.latest_tag = latest_tag
-
-    if args.token is None:
-        msg_error("Please supply a valid GitHub token.")
 
     print_config(args, repo)
 
-    # Create a release tag
-    if repo == "cockpit-composer":
-        tag = str(args.version)
-    else:
-        tag = f'v{args.version}'
-    create_release_tag(args, repo, tag)
+    tag = f'v{args.version}'
 
+    # Create a release tag
+    create_release_tag(args, repo, tag, latest_tag)
+
+    # Push the tag
     #subprocess.call(['git', 'push', 'origin', tag])
     msg_ok(f"Pushed tag '{tag}' to branch '{args.base}'")
 

@@ -1,4 +1,4 @@
-name: "Create and push tag"
+name: "Release bot"
 description: "Create a tag and push it"
 
 inputs:
@@ -42,5 +42,5 @@ runs:
     - name: Create and push tag
       run: |
         cd ${{ github.action_path }}/"${{ inputs.COMPONENT }}"/
-        ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}"
+        ${{ github.action_path }}/release_bot.py --token "${{ inputs.TOKEN }}"
       shell: bash
