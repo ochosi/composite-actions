@@ -146,6 +146,7 @@ def create_release_tag(args, repo, tag):
                 f"Contributions from: {contributors}\n\n"
                 f"— Somewhere on the internet, {today.strftime('%Y-%m-%d')}")
 
+    msg_info(f"Creating tag '{tag}' with message:\n{message}")
     subprocess.call(['git', 'tag', '-s', '-m', message, tag, 'HEAD'])
 
 
