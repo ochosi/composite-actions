@@ -37,5 +37,5 @@ runs:
       shell: bash
 
     - name: Create and push tag
-      run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive --dry-run
+      run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}"
       shell: bash
