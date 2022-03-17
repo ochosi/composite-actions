@@ -25,7 +25,7 @@ runs:
 
     - name: Set up git
       run:  |
-        git clone https://"${{ inputs.TOKEN }}"@github.com/osbuild/"${{ inputs.COMPONENT }}"
+        git clone https://"${{ inputs.TOKEN }}"@github.com/osbuild/"${{ inputs.COMPONENT }}".git
         git config --global user.email "${{ inputs.EMAIL }}"
         git config --global user.name "${{ inputs.USERNAME }}"
         git remote -v
