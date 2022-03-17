@@ -66,7 +66,7 @@ def sanity_checks(repo):
                  f"{status}")
     has_gpg_key = run_command(['git', 'config', '--get', 'user.signingkey'])
     if has_gpg_key == "":
-        msg_error("There is no GPG key set in your git configuration so you cannot create a signed tag.\n"
+        msg_info("There is no GPG key set in your git configuration so you cannot create a signed tag.\n"
                   "If you already have a GPG key you can get the fingerprint with:\n"
                   "'gpg --list-secret-keys --keyid-format=long'\n"
                   "Please then set it using 'git config --global user.signingkey FINGERPRINT'")
