@@ -14,8 +14,7 @@ inputs:
 
 runs:
   using: "composite"
-  container:
-    image: quay.io/osbuild/fedora-bot:latest
+  image: quay.io/osbuild/fedora-bot:latest
   steps:
     - name: Checkout current repo
       uses: actions/checkout@v3
