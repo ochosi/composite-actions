@@ -14,6 +14,8 @@ inputs:
 
 runs:
   using: "composite"
+  container:
+    image: quay.io/osbuild/fedora-bot:latest
   steps:
     - name: Checkout current repo
       uses: actions/checkout@v3
@@ -29,8 +31,10 @@ runs:
     #    git fetch --tags --prune --force
       shell: bash
 
-    - uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-      run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive
+    - name: Install Python depends
+      run: pip install ghapi
+      shell: bash
+
+    - name: Create and push tag
+      run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive --dry-run
       shell: bash
