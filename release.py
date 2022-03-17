@@ -104,7 +104,7 @@ def get_pullrequest_infos(args, repo, hashes):
                 msg = f"- {pull_request.title} (#{pull_request.number})"
             else:
                 msg = f"  * {pull_request.title} (#{pull_request.number})"
-        summaries.append(msg)
+            summaries.append(msg)
 
     summaries = list(dict.fromkeys(summaries))
     msg_ok(f"Collected summaries from {len(summaries)} pull requests ({i} commits).")
