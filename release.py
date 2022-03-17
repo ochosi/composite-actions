@@ -276,12 +276,17 @@ def main():
                         default=token)
     parser.add_argument("-i", "--interactive", help="Create tag interactively, i.e. allow editing",
                         default=True, action='store_true')
+    parser.add_argument("--no-interactive", help="Non interactive bot mode",
+                        default=False, action='store_true')
     parser.add_argument(
         "-b", "--base",
         help=f"Set the base branch that the release targets (Default: {current_branch})",
         default=current_branch)
 
     args = parser.parse_args()
+
+    if args.no_interactive:
+        args.interactive = False
 
     args.latest_tag = latest_tag
 
