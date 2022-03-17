@@ -32,6 +32,5 @@ runs:
     - uses: actions/setup-python@v2
       with:
         python-version: '3.9'
-    - name: Create tag
       run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive
       shell: bash
