@@ -29,13 +29,9 @@ runs:
     #    git fetch --tags --prune --force
       shell: bash
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-
     - name: Create tag
       run: |
+        sudo apt-get install python3
         python -m pip install --upgrade pip
         pip install ghapi
         ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}" --no-interactive
