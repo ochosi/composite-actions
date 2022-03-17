@@ -66,7 +66,11 @@ def autoincrement_version(latest_tag):
 def list_prs_for_hash(args, api, repo, commit_hash):
     """Get pull request for a given commit hash"""
     query = f'{commit_hash} type:pr is:merged base:{args.base} repo:osbuild/{repo}'
-    res = api.search.issues_and_pull_requests(q=query, per_page=20)
+    try:
+        res = api.search.issues_and_pull_requests(q=query, per_page=20)
+    except:
+        msg_info(f"Couldn't get PR infos for {commit_hash}.")
+        ret = None
     if res is not None:
         items = res["items"]
 
