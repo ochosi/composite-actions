@@ -7,6 +7,7 @@ import subprocess
 import sys
 import os
 import time
+import logging
 from datetime import date
 from ghapi.all import GhApi
 
@@ -91,13 +92,14 @@ def list_prs_for_hash(args, api, repo, commit_hash):
 
 def get_pullrequest_infos(args, repo, hashes):
     """Fetch the titles of all related pull requests"""
+    logging.debug("Collect pull request titles...")
     api = GhApi(repo=repo, owner='ochosi', token=args.token)
     summaries = []
     i = 0
 
     for commit_hash in hashes:
         i += 1
-        print(f"Fetching PR {i}")
+        print(f"Fetching PR for commit {i}/{len(hashes)} ({commit_hash})")
         time.sleep(2)
         pull_request = list_prs_for_hash(args, api, repo, commit_hash)
         if pull_request is not None:
@@ -114,6 +116,7 @@ def get_pullrequest_infos(args, repo, hashes):
 
 def get_contributors(latest_tag):
     """Collect all contributors to a release based on the git history"""
+    logging.debug("Collect contributors...")
     contributors = run_command(["git", "log", '--format="%an"', f"{latest_tag}..HEAD"])
     contributor_list = contributors.replace('"', '').split("\n")
     names = ""
@@ -121,18 +124,21 @@ def get_contributors(latest_tag):
         if name != "":
             names += f"{name}, "
 
+    logging.debug(f"List of contributors:\n{names[:-2]}")
+
     return names[:-2]
 
 
 def create_release_tag(args, repo, tag, latest_tag):
     """Create a release tag"""
+    logging.debug("Preparing tag...")
     today = date.today()
     contributors = get_contributors(latest_tag)
 
     summaries = ""
     hashes = run_command(['git', 'log', '--format=%H', f'{latest_tag}..HEAD']).split("\n")
     msg_info(f"Found {len(hashes)} commits since {latest_tag} in {args.base}:")
-    print("\n".join(hashes))
+    logging.debug("\n".join(hashes))
     summaries = get_pullrequest_infos(args, repo, hashes)
 
     tag = f'v{args.version}'
@@ -142,7 +148,8 @@ def create_release_tag(args, repo, tag, latest_tag):
             f"Contributions from: {contributors}\n\n"
             f"— Somewhere on the internet, {today.strftime('%Y-%m-%d')}")
 
-    subprocess.call(['git', 'tag', '-m', message, tag, 'HEAD'])
+    res = run_command(['git', 'tag', '-m', message, tag, 'HEAD'])
+    logging.debug(res)
     msg_ok(f"Created tag '{tag}' with message:\n{message}")
 
 
@@ -171,17 +178,23 @@ def main():
     parser.add_argument("-b", "--base",
                         help=f"Set the release branch (Default: 'main')",
                         default='main')
+    parser.add_argument("-d", "--debug", help="Print lots of debugging statements", action="store_const",
+                        dest="loglevel", const=logging.DEBUG, default=logging.INFO)
     args = parser.parse_args()
+
+    logging.basicConfig(level=args.loglevel, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d/ %H:%M:%S', encoding='utf-8')
 
     print_config(args, repo)
 
     tag = f'v{args.version}'
+    logging.debug(f"Current release: {latest_tag}\nNew release: {args.version}\nTag name: {tag}")
 
     # Create a release tag
     create_release_tag(args, repo, tag, latest_tag)
 
     # Push the tag
-    #subprocess.call(['git', 'push', 'origin', tag])
+    #res = run_command(['git', 'push', 'origin', tag])
+    #logging.debug(res)
     msg_ok(f"Pushed tag '{tag}' to branch '{args.base}'")
 
 
