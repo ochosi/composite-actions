@@ -5,6 +5,8 @@ inputs:
   token:
     description: "A GitHub token for creating a tag"
     required: true
+  component:
+    description: "The name of the repository triggering this action"
   username:
     description: "A GitHub user name"
     required: true
@@ -23,6 +25,7 @@ runs:
 
     - name: Set up git
       run:  |
+        git clone https://"${{ inputs.TOKEN }}"@github.com/osbuild/"${{ inputs.COMPONENT }}"
         git config --global user.email "${{ inputs.EMAIL }}"
         git config --global user.name "${{ inputs.USERNAME }}"
         git remote -v
@@ -37,5 +40,7 @@ runs:
       shell: bash
 
     - name: Create and push tag
-      run: ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}"
+      run: |
+        cd ${{ github.action_path }}/"${{ inputs.COMPONENT }}"/
+        ${{ github.action_path }}/release.py --user "${{ inputs.USERNAME }}" --token "${{ inputs.TOKEN }}"
       shell: bash

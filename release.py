@@ -202,7 +202,7 @@ def main():
         tag = f'v{args.version}'
     create_release_tag(args, repo, tag)
 
-    subprocess.call(['git', 'push', 'origin', tag])
+    #subprocess.call(['git', 'push', 'origin', tag])
     msg_ok(f"Pushed tag '{tag}' to branch '{args.base}'")
 
 
