@@ -182,7 +182,7 @@ def main():
                         dest="loglevel", const=logging.DEBUG, default=logging.INFO)
     args = parser.parse_args()
 
-    logging.basicConfig(level=args.loglevel, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d/ %H:%M:%S', encoding='utf-8')
+    logging.basicConfig(level=args.loglevel, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d/ %H:%M:%S')
 
     print_config(args, repo)
 
