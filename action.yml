@@ -33,14 +33,14 @@ runs:
     - name: Set up git
       run:  |
         COMPONENT=$(echo "${{ github.repository }}" | awk -F "/" '{print $3}')
-        git clone https://"${{ inputs.TOKEN }}"@github.com/"${{ github.repository }}".git ${{ github.action_path }}/$COMPONENT
+        echo $COMPONENT
+        git clone https://"${{ inputs.TOKEN }}"@github.com/"${{ github.repository }}".git ${{ github.action_path }}/gitrepo
         git config --global user.email "${{ inputs.EMAIL }}"
         git config --global user.name "${{ inputs.USERNAME }}"
-        cd ${{ github.action_path }}/$COMPONENT/
       shell: bash
 
     - name: Create and push tag
       run: |
-        cd ${{ github.action_path }}/"${{ inputs.COMPONENT }}"/
+        cd ${{ github.action_path }}/gitrepo/
         ${{ github.action_path }}/release_bot.py --token "${{ inputs.TOKEN }}"
       shell: bash
